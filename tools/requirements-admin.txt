@@ -1,2 +1,0 @@
-# Owner-only admin panel deps (NEVER ship to buyers)
-firebase-admin
