@@ -9,6 +9,7 @@ from tkinter import messagebox
 import urllib.request
 
 from . import config as cfg
+from . import license as lic
 from .ai_client import GeminiClient, DEFAULT_OR_KEY
 from .brain import handle_command
 from .hero import draw_hero
@@ -126,6 +127,11 @@ class AlisaApp(tk.Tk):
                                   activebackground="#451a03", activeforeground="white",
                                   command=self._settings)
         self.api_pill.pack(side="left", padx=3)
+        self.plan_pill = tk.Button(pills, text="🎫 FREE", bg="#1c2547", fg=MUTED, relief="flat",
+                                   font=("Consolas", 9, "bold"), padx=10, pady=3,
+                                   activebackground="#2a3563", activeforeground="white",
+                                   command=self._activation)
+        self.plan_pill.pack(side="left", padx=3)
         tk.Button(pills, text="💜 ALISA MODE", bg="#2a1030", fg="#e879f9", relief="flat",
                   font=("Consolas", 9, "bold"), padx=10, pady=3,
                   activebackground="#4a044e", activeforeground="white",
@@ -535,9 +541,14 @@ class AlisaApp(tk.Tk):
     def _refresh_status(self):
         ai_state = f"AI: {self.ai.provider}" if self.ai.ready else "AI: off"
         voice_state = "Voice: on" if self.voice.enabled else "Voice: muted"
+        plan = "💎 PREMIUM" if lic.is_premium() else "FREE"
         try:
-            self.status.configure(text=f"{ai_state}  ·  {voice_state}  ·  Camera: {'on' if self.camera_on else 'off'}")
+            self.status.configure(text=f"{ai_state}  ·  {voice_state}  ·  {plan}  ·  Camera: {'on' if self.camera_on else 'off'}")
             self._refresh_api_pill()
+            self.plan_pill.configure(
+                text="💎 PREMIUM" if lic.is_premium() else "🎫 FREE",
+                fg="#fbbf24" if lic.is_premium() else MUTED,
+            )
         except Exception:
             pass
 
@@ -546,6 +557,38 @@ class AlisaApp(tk.Tk):
             self.api_pill.configure(text="🔑 API ✓" if self.ai.ready else "🔑 API")
         except Exception:
             pass
+
+    def _activation(self):
+        win = tk.Toplevel(self)
+        win.title("ALISA Activation Center")
+        win.geometry("440x340")
+        win.configure(bg=BG)
+        win.transient(self)
+        tk.Label(win, text="🎫 Activation Center", bg=BG, fg=GOLD,
+                 font=("Segoe UI", 16, "bold")).pack(pady=(16, 4))
+        status = "💎 PREMIUM — all features unlocked!" if lic.is_premium() else "FREE plan — Vision, Research & Website Generator are locked."
+        tk.Label(win, text=status, bg=BG, fg=TEXT, font=("Segoe UI", 10),
+                 wraplength=380, justify="center").pack(padx=16)
+        tk.Label(win, text="Get a key from the owner, then paste below:", bg=BG, fg=MUTED,
+                 font=("Segoe UI", 9)).pack(pady=(12, 2))
+        k_entry = tk.Entry(win, font=("Consolas", 11), width=40, justify="center")
+        k_entry.pack(padx=16, ipady=6)
+        msg = tk.Label(win, text="", bg=BG, fg=RED, font=("Segoe UI", 9, "bold"))
+        msg.pack(pady=(6, 0))
+
+        def _activate():
+            key = k_entry.get()
+            if lic.verify_key(key):
+                lic.save_license(key.strip().upper())
+                self._refresh_status()
+                msg.configure(text="✅ Activated! Welcome to PREMIUM!", fg=GREEN)
+                self.after(1200, win.destroy)
+            else:
+                msg.configure(text="❌ Invalid key. Check and try again.", fg=RED)
+
+        tk.Button(win, text="Activate ✨", bg=GOLD, fg="black", relief="flat",
+                  font=("Segoe UI", 11, "bold"), padx=30, pady=8,
+                  activebackground="#ca8a04", command=_activate).pack(pady=12)
 
     def _settings(self):
         win = tk.Toplevel(self)
