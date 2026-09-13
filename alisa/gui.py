@@ -101,9 +101,6 @@ class AlisaApp(tk.Tk):
         self._tick_clock()
         self._animate_orb()
         threading.Thread(target=self._stats_worker, daemon=True).start()
-        # hard gate: no valid key = no use
-        if not lic.is_premium():
-            self._require_activation()
         self._say("Systems online. I'm ALISA — ask me anything, or pick a tool on the left.", speak=False)
 
     # ══ layout ══
@@ -560,51 +557,6 @@ class AlisaApp(tk.Tk):
             self.api_pill.configure(text="🔑 API ✓" if self.ai.ready else "🔑 API")
         except Exception:
             pass
-
-    def _require_activation(self):
-        """Block the whole app until a valid key is entered."""
-        win = tk.Toplevel(self)
-        win.title("ALISA — Activation Required")
-        win.geometry("440x380")
-        win.configure(bg=BG)
-        win.transient(self)
-        win.grab_set()
-        tk.Label(win, text="🔒 Activation Required", bg=BG, fg=GOLD,
-                 font=("Segoe UI", 16, "bold")).pack(pady=(16, 4))
-        tk.Label(win, text="💎 ALISA costs ৳150 lifetime.\nThis software is NOT free and NOT open source.\nUnauthorized use will face legal action.",
-                 bg=BG, fg=TEXT, font=("Segoe UI", 10), wraplength=380,
-                 justify="center").pack(padx=16)
-        buy = tk.Button(win, text="💬 Buy on Telegram: @swampod", bg="#229ED9", fg="white",
-                        relief="flat", font=("Segoe UI", 10, "bold"), padx=16, pady=7,
-                        activebackground="#1b8ac0",
-                        command=lambda: __import__("webbrowser").open("https://t.me/swampod"))
-        buy.pack(pady=(10, 0))
-        k_entry = tk.Entry(win, font=("Consolas", 11), width=40, justify="center")
-        k_entry.pack(padx=16, pady=(12, 0), ipady=6)
-        k_entry.focus_set()
-        msg = tk.Label(win, text="", bg=BG, fg=RED, font=("Segoe UI", 9, "bold"))
-        msg.pack(pady=(6, 0))
-
-        def _activate():
-            if lic.verify_key(k_entry.get()):
-                lic.save_license(k_entry.get().strip().upper())
-                self._refresh_status()
-                win.destroy()
-            else:
-                msg.configure(text="❌ Invalid key.")
-
-        tk.Button(win, text="Activate ✨", bg=GOLD, fg="black", relief="flat",
-                  font=("Segoe UI", 11, "bold"), padx=30, pady=8,
-                  activebackground="#ca8a04", command=_activate).pack(pady=12)
-        win.protocol("WM_DELETE_WINDOW", win.destroy)
-        self.wait_window(win)
-        try:
-            win.grab_release()
-        except Exception:
-            pass
-        if not lic.is_premium():
-            messagebox.showwarning("ALISA", "A valid license key is required to use ALISA.")
-            self.destroy()
 
     def _activation(self):
         win = tk.Toplevel(self)
