@@ -123,35 +123,6 @@ Premium unlocks **Camera Vision + Deep Research + Website Generator**, forever.
 2. Receive your `ALISA-XXXX-...` activation key
 3. Open ALISA → **Activation Center** (top bar) → paste key → **Activate ✨**
 
-## 👑 Owner Admin Panel (`tools/admin_panel.py`)
-
-See every activated device, manage keys, push updates & notices — all from one dashboard.
-
-**Setup (once):**
-1. `pip install -r tools/requirements-admin.txt`
-2. Firebase Console → Project settings → Service accounts → **Generate new private key** (keep this file SECRET, never share/commit it!)
-3. Run `python tools/admin_panel.py` → paste the JSON path → Connect
-
-**Firebase Rules needed once** (Realtime Database → Rules → Publish):
-```json
-{
-  "rules": {
-    "keyHashes": {
-      ".read": true,
-      "$hash": {
-        "device": { ".write": "!data.exists()", ".validate": "newData.isString()" },
-        "lastSeen": { ".write": true },
-        "appVersion": { ".write": true },
-        "firstSeen": { ".write": "!data.exists()" }
-      }
-    },
-    "meta": { ".read": true }
-  }
-}
-```
-
-**What you can do:** live stats · generate+register/revoke/delete keys · reset device binding · publish updates (bell in user apps!) · broadcast notices
-
 ## 🧑‍💻 For the owner (source run)
 
 ```bat

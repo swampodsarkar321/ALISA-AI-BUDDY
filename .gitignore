@@ -11,3 +11,5 @@ tools/admin_config.json
 *firebase-adminsdk*.json
 service-account*.json
 tools/
+generate_key.py
+OWNER_GUIDE.txt
