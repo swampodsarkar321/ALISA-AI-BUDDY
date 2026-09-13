@@ -101,6 +101,14 @@ pip install alisa-assistant
 alisa
 ```
 
+### 🖥️ No-install version (recommended for buyers)
+
+Download **ALISA.exe** (~230 MB, Windows 10/11 64-bit) → double-click → done!
+No Python, no pip, nothing to install. Settings save to `%APPDATA%/ALISA`.
+
+> Buyers get the .exe + activation key. Sellers: rebuild with
+> `pyinstaller --noconfirm --onefile --windowed --name ALISA --icon assets/icon.ico main.py`
+
 ### Update / Uninstall
 
 ```bat

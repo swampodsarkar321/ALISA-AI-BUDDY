@@ -17,10 +17,12 @@ import json
 import os
 import re
 
+from .config import app_data_dir
+
 # !!! OWNER: replace this with your own long random string, keep it private !!!
 OWNER_SECRET = "alisa-demo-secret-change-me-9f3k7q2w"
 
-LICENSE_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "license.json")
+LICENSE_PATH = os.path.join(app_data_dir(), "license.json")
 KEY_RE = re.compile(r"^ALISA-([A-Z2-7]{4})-([A-Z2-7]{4})-([A-Z2-7]{4})-([A-Z2-7]{4})-([A-Z2-7]{4})$")
 
 PREMIUM_FEATURES = ("vision", "research", "website")

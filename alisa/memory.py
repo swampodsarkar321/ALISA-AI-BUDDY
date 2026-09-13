@@ -3,7 +3,9 @@
 import json
 import os
 
-MEM_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "memory.json")
+from .config import app_data_dir
+
+MEM_PATH = os.path.join(app_data_dir(), "memory.json")
 
 
 def load_facts():

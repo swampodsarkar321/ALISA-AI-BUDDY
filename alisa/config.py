@@ -2,8 +2,23 @@
 
 import json
 import os
+import sys
 
-CONFIG_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config.json")
+
+def app_data_dir():
+    """Writable folder: %APPDATA%/ALISA when frozen (.exe), module dir in dev."""
+    if getattr(sys, "frozen", False):
+        path = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "ALISA")
+    else:
+        path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..")
+    try:
+        os.makedirs(path, exist_ok=True)
+    except OSError:
+        pass
+    return path
+
+
+CONFIG_PATH = os.path.join(app_data_dir(), "config.json")
 
 
 def load():

@@ -4,7 +4,9 @@ import json
 import os
 import re
 
-CONTACTS_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "contacts.json")
+from .config import app_data_dir
+
+CONTACTS_PATH = os.path.join(app_data_dir(), "contacts.json")
 
 
 def load():
