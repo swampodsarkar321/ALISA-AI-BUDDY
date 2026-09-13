@@ -67,14 +67,58 @@ def key_hash(key):
     return hashlib.sha256(key.strip().upper().encode()).hexdigest()
 
 
-def verify_online(key):
-    """Check the online registry. Returns True/False/None (None = offline)."""
+def device_id():
+    """Stable, privacy-safe device fingerprint (hashed, no raw IDs sent)."""
     try:
-        with urllib.request.urlopen(f"{KEY_DB_URL}/{key_hash(key)}.json", timeout=10) as r:
-            data = json.load(r)
+        import winreg
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SOFTWARE\Microsoft\Cryptography") as k:
+            guid, _ = winreg.QueryValueEx(k, "MachineGuid")
+            return hashlib.sha256(("alisa-" + guid).encode()).hexdigest()[:32]
+    except Exception:
+        pass
+    try:
+        import uuid
+        import socket
+        raw = f"{uuid.getnode()}-{socket.gethostname()}"
+        return hashlib.sha256(raw.encode()).hexdigest()[:32]
+    except Exception:
+        return "unknown-device"
+
+
+def _rest(method, path, payload=None):
+    req = urllib.request.Request(
+        f"{KEY_DB_URL}/{path}.json",
+        data=json.dumps(payload).encode() if payload is not None else None,
+        method=method,
+        headers={"Content-Type": "application/json"},
+    )
+    with urllib.request.urlopen(req, timeout=10) as r:
+        body = r.read().decode("utf-8", "replace")
+        return json.loads(body) if body.strip() else None
+
+
+def verify_online(key):
+    """Check the online registry + device binding.
+
+    Returns True / False (not found or revoked) / 'bound' (used on another
+    device) / None (offline).
+    """
+    try:
+        data = _rest("GET", key_hash(key))
         if not data:
             return False
-        return not data.get("revoked", False)
+        if data.get("revoked", False):
+            return False
+        mine = device_id()
+        bound = data.get("device")
+        if not bound:
+            # first device claims the key (allowed once by DB rules)
+            try:
+                _rest("PUT", f"{key_hash(key)}/device", mine)
+            except Exception:
+                return None
+            return True
+        return True if bound == mine else "bound"
     except Exception:
         return None
 
@@ -122,13 +166,13 @@ def recheck_saved_key():
     if result is True:
         save_license(saved["key"])
         return "ok"
-    if result is False:
+    if result in (False, "bound"):
         save_license("", checked_now=False)
         try:
             os.remove(LICENSE_PATH)
         except OSError:
             pass
-        return "revoked"
+        return "revoked" if result is False else "bound"
     return "offline"
 
 

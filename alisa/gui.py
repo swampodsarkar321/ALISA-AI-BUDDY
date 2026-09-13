@@ -111,6 +111,10 @@ class AlisaApp(tk.Tk):
                 self.after(0, self._refresh_status)
                 self.after(0, self._say,
                            "⚠️ This license key was revoked by the owner. Back to FREE plan.", "sys", False)
+            elif result == "bound":
+                self.after(0, self._refresh_status)
+                self.after(0, self._say,
+                           "⚠️ This key is bound to another device. Back to FREE plan.", "sys", False)
         except Exception:
             pass
 
@@ -608,6 +612,10 @@ class AlisaApp(tk.Tk):
                 result = lic.verify_online(key)
                 if result is False:
                     self.after(0, lambda: msg.configure(text="❌ Key not found / revoked.", fg=RED))
+                    return
+                if result == "bound":
+                    self.after(0, lambda: msg.configure(
+                        text="⚠️ Key already used on another device.\nContact @swampod to reset.", fg=GOLD))
                     return
                 if result is None:
                     self.after(0, lambda: msg.configure(
