@@ -90,8 +90,8 @@ Designed for creators, developers, students and professionals, ALISA works **out
 **[Releases](https://github.com/swampodsarkar321/ALISA-AI-BUDDY/releases)** —
 double-click and done! No Python, no pip, nothing to install.
 
-Direct link (v1.0.0):
-**https://github.com/swampodsarkar321/ALISA-AI-BUDDY/releases/download/v1.0.0/ALISA.exe**
+Direct link:
+**https://github.com/swampodsarkar321/ALISA-AI-BUDDY/releases/download/Version1/ALISA.exe**
 
 Settings save automatically to `%APPDATA%/ALISA`.
 
