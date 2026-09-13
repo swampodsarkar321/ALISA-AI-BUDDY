@@ -633,4 +633,24 @@ def _single(text, system):
         except Exception as e:
             return (f"Screen analysis failed: {e}", False)
 
+    # ── bare-word usage hints (trailing space gets stripped) ──
+    _BARE_HINTS = {
+        "remember": "Say 'remember ...', e.g. 'remember my birthday is 5 May'.",
+        "note": "Say 'note ...', e.g. 'note buy milk'.",
+        "search": "Say 'search ...', e.g. 'search cats'.",
+        "play": "Say 'play ...', e.g. 'play faded'.",
+        "open": "Say 'open ...', e.g. 'open notepad'.",
+        "close": "Say 'close ...', e.g. 'close notepad'.",
+        "press": "Say 'press ...', e.g. 'press enter'.",
+        "type": "Say 'type ...', e.g. 'type hello'.",
+        "move": "Say 'move FILE to FOLDER' or 'move mouse X Y'.",
+        "website": "Say 'website NAME [landing|blog|portfolio]'. (Premium feature 🔒)",
+        "whatsapp": "Say 'whatsapp NUMBER message'.",
+        "brightness": "Say 'brightness 10-100', e.g. 'brightness 70'.",
+        "remind": "Say 'remind me in 10 take a break'.",
+        "message": "Say 'message NAME your text here'.",
+    }
+    if low in _BARE_HINTS:
+        return (_BARE_HINTS[low], False)
+
     return "", True  # fall through to Gemini AI
