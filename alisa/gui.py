@@ -570,6 +570,11 @@ class AlisaApp(tk.Tk):
                  font=("Segoe UI", 13, "bold")).pack()
         tk.Label(win, text="Vision + Deep Research + Website Generator, forever.",
                  bg=BG, fg=MUTED, font=("Segoe UI", 9)).pack(pady=(0, 4))
+        buy_btn = tk.Button(win, text="💬 Buy on Telegram: @swampod", bg="#229ED9", fg="white",
+                            relief="flat", font=("Segoe UI", 10, "bold"), padx=16, pady=7,
+                            activebackground="#1b8ac0",
+                            command=lambda: __import__("webbrowser").open("https://t.me/swampod"))
+        buy_btn.pack(pady=(6, 0))
         status = "💎 PREMIUM — all features unlocked!" if lic.is_premium() else "FREE plan — Vision, Research & Website Generator are locked."
         tk.Label(win, text=status, bg=BG, fg=TEXT, font=("Segoe UI", 10),
                  wraplength=380, justify="center").pack(padx=16)

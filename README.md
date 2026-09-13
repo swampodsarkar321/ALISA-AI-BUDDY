@@ -125,7 +125,7 @@ ALISA ships with a built-in free key, so it works immediately. To use your **own
 Premium unlocks **Camera Vision + Deep Research + Website Generator**, forever.
 
 **How to buy:**
-1. Send **৳150 via bKash** to the owner (contact via GitHub)
+1. Message **[@swampod on Telegram](https://t.me/swampod)** — send **৳150 via bKash**
 2. Receive your `ALISA-XXXX-...` activation key
 3. Open ALISA → **Activation Center** (top bar) → paste key → **Activate ✨**
 
