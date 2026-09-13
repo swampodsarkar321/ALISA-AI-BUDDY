@@ -24,7 +24,7 @@ def main():
     ap.add_argument("--count", type=int, default=1)
     args = ap.parse_args()
 
-    from alisa.license import make_key, verify_key
+    from alisa.license import make_key, verify_key, key_hash
 
     keys = []
     for _ in range(max(1, min(args.count, 50))):
@@ -39,6 +39,12 @@ def main():
     print(f"Generated {len(keys)} key(s) (also saved to {KEYS_LOG}):")
     for k in keys:
         print(" ", k)
+        print("   hash:", key_hash(k))
+    print()
+    print("NEXT: register each hash in Firebase so online check passes:")
+    print("  console.firebase.google.com → chat-2-me-c3213 → Realtime Database")
+    print("  → keyHashes → Add child: <hash> = {\"revoked\": false}")
+    print("Rules needed once: {\"rules\": {\"keyHashes\": {\".read\": true}, ...}}")
 
 
 if __name__ == "__main__":

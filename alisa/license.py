@@ -16,6 +16,8 @@ import hmac
 import json
 import os
 import re
+import time
+import urllib.request
 
 from .config import app_data_dir
 
@@ -24,6 +26,11 @@ OWNER_SECRET = "alisa-demo-secret-change-me-9f3k7q2w"
 
 LICENSE_PATH = os.path.join(app_data_dir(), "license.json")
 KEY_RE = re.compile(r"^ALISA-([A-Z2-7]{4})-([A-Z2-7]{4})-([A-Z2-7]{4})-([A-Z2-7]{4})-([A-Z2-7]{4})$")
+
+# Online key registry (Firebase). Only SHA-256 hashes are stored publicly —
+# hashes can't be reversed into keys, so public read is safe.
+KEY_DB_URL = "https://chat-2-me-c3213-default-rtdb.firebaseio.com/keyHashes"
+RECHECK_DAYS = 7
 
 PREMIUM_FEATURES = ("vision", "research", "website")
 
@@ -56,25 +63,73 @@ def verify_key(key):
     return chk == m.group(5)
 
 
+def key_hash(key):
+    return hashlib.sha256(key.strip().upper().encode()).hexdigest()
+
+
+def verify_online(key):
+    """Check the online registry. Returns True/False/None (None = offline)."""
+    try:
+        with urllib.request.urlopen(f"{KEY_DB_URL}/{key_hash(key)}.json", timeout=10) as r:
+            data = json.load(r)
+        if not data:
+            return False
+        return not data.get("revoked", False)
+    except Exception:
+        return None
+
+
 def load_license():
     try:
         with open(LICENSE_PATH, "r", encoding="utf-8") as f:
             data = json.load(f)
             key = data.get("key", "")
             if verify_key(key):
-                return {"plan": "premium", "key": key}
+                return {"plan": "premium", "key": key, "lastCheck": data.get("lastCheck", 0)}
     except (OSError, ValueError):
         pass
     return {"plan": "free", "key": ""}
 
 
-def save_license(key):
+def save_license(key, checked_now=True):
     try:
+        payload = {"key": key}
+        if checked_now:
+            payload["lastCheck"] = int(time.time())
         with open(LICENSE_PATH, "w", encoding="utf-8") as f:
-            json.dump({"key": key}, f, indent=2)
+            json.dump(payload, f, indent=2)
         return True
     except OSError:
         return False
+
+
+def recheck_saved_key():
+    """Re-verify the saved key online (cheap, runs at startup in background).
+
+    Returns 'ok' | 'revoked' | 'offline'. Revoked keys are downgraded to free.
+    Skips the network entirely if checked within RECHECK_DAYS.
+    """
+    saved = load_license()
+    if saved["plan"] != "premium":
+        return "free"
+    try:
+        age_days = (int(time.time()) - int(saved.get("lastCheck", 0))) / 86400
+    except (TypeError, ValueError):
+        age_days = RECHECK_DAYS + 1
+    if age_days < RECHECK_DAYS:
+        return "ok"
+    result = verify_online(saved["key"])
+    if result is True:
+        save_license(saved["key"])
+        return "ok"
+    if result is False:
+        save_license("", checked_now=False)
+        try:
+            os.remove(LICENSE_PATH)
+        except OSError:
+            pass
+        return "revoked"
+    return "offline"
 
 
 def is_premium():

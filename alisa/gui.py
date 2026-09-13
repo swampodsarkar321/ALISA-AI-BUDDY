@@ -101,7 +101,18 @@ class AlisaApp(tk.Tk):
         self._tick_clock()
         self._animate_orb()
         threading.Thread(target=self._stats_worker, daemon=True).start()
+        threading.Thread(target=self._license_recheck, daemon=True).start()
         self._say("Systems online. I'm ALISA — ask me anything, or pick a tool on the left.", speak=False)
+
+    def _license_recheck(self):
+        try:
+            result = lic.recheck_saved_key()
+            if result == "revoked":
+                self.after(0, self._refresh_status)
+                self.after(0, self._say,
+                           "⚠️ This license key was revoked by the owner. Back to FREE plan.", "sys", False)
+        except Exception:
+            pass
 
     # ══ layout ══
     def _panel_label(self, parent, text):
@@ -587,13 +598,28 @@ class AlisaApp(tk.Tk):
 
         def _activate():
             key = k_entry.get()
-            if lic.verify_key(key):
+            if not lic.verify_key(key):
+                msg.configure(text="❌ Invalid key format.", fg=RED)
+                return
+            msg.configure(text="⏳ Checking online…", fg=GOLD)
+            win.update_idletasks()
+
+            def _worker():
+                result = lic.verify_online(key)
+                if result is False:
+                    self.after(0, lambda: msg.configure(text="❌ Key not found / revoked.", fg=RED))
+                    return
+                if result is None:
+                    self.after(0, lambda: msg.configure(
+                        text="⚠️ No internet — connect once to activate.", fg=GOLD))
+                    return
                 lic.save_license(key.strip().upper())
-                self._refresh_status()
-                msg.configure(text="✅ Activated! Welcome to PREMIUM!", fg=GREEN)
+                self.after(0, self._refresh_status)
+                self.after(0, lambda: msg.configure(text="✅ Activated! Welcome to PREMIUM!", fg=GREEN))
                 self.after(1200, win.destroy)
-            else:
-                msg.configure(text="❌ Invalid key. Check and try again.", fg=RED)
+
+            import threading as _th
+            _th.Thread(target=_worker, daemon=True).start()
 
         tk.Button(win, text="Activate ✨", bg=GOLD, fg="black", relief="flat",
                   font=("Segoe UI", 11, "bold"), padx=30, pady=8,
