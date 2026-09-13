@@ -8,7 +8,7 @@ version = "1.0.1"
 description = "ALISA — AI desktop assistant for Windows: voice, vision, system control, free AI chat"
 readme = "README.md"
 requires-python = ">=3.10"
-license = { text = "MIT" }
+license = { text = "Proprietary" }
 authors = [{ name = "Swampod Sarkar" }]
 keywords = ["ai-assistant", "desktop-assistant", "gemini", "voice-assistant", "windows-automation"]
 dependencies = [

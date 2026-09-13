@@ -4,7 +4,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/downloads/)
 [![PyPI](https://img.shields.io/badge/PyPI-alisa--assistant-purple)](https://pypi.org/project/alisa-assistant/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow)](./LICENSE)
+[![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red)](./LICENSE)
 
 ## 📖 About ALISA
 
@@ -173,11 +173,15 @@ Python · OpenRouter · Gemini AI · Speech Recognition · Text-To-Speech · OCR
 
 ## 🤝 Contributing
 
-Contributions, issues and feature requests are welcome: fork → branch → commit → pull request.
+This software is NOT open source. Do not copy, fork for redistribution, or
+submit copies as your own. Bug reports via Telegram are welcome.
 
 ## 📜 License
 
-MIT License — see [LICENSE](./LICENSE).
+**Proprietary — © 2026 Swampod Sarkar. All rights reserved.**
+Use requires a paid activation key. Unauthorized copying, cracking or
+distribution will face legal action in the offender's name.
+See [LICENSE](./LICENSE).
 
 ---
 ❤️ Built with Python & AI · Developed by **Swampod Sarkar**
