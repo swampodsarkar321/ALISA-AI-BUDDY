@@ -566,10 +566,14 @@ class AlisaApp(tk.Tk):
         win.transient(self)
         tk.Label(win, text="🎫 Activation Center", bg=BG, fg=GOLD,
                  font=("Segoe UI", 16, "bold")).pack(pady=(16, 4))
+        tk.Label(win, text="💎 PREMIUM — ৳150 lifetime", bg=BG, fg=TEXT,
+                 font=("Segoe UI", 13, "bold")).pack()
+        tk.Label(win, text="Vision + Deep Research + Website Generator, forever.",
+                 bg=BG, fg=MUTED, font=("Segoe UI", 9)).pack(pady=(0, 4))
         status = "💎 PREMIUM — all features unlocked!" if lic.is_premium() else "FREE plan — Vision, Research & Website Generator are locked."
         tk.Label(win, text=status, bg=BG, fg=TEXT, font=("Segoe UI", 10),
                  wraplength=380, justify="center").pack(padx=16)
-        tk.Label(win, text="Get a key from the owner, then paste below:", bg=BG, fg=MUTED,
+        tk.Label(win, text="Get a key from the owner (bKash ৳150), then paste below:", bg=BG, fg=MUTED,
                  font=("Segoe UI", 9)).pack(pady=(12, 2))
         k_entry = tk.Entry(win, font=("Consolas", 11), width=40, justify="center")
         k_entry.pack(padx=16, ipady=6)

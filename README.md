@@ -120,6 +120,15 @@ ALISA ships with a built-in free key, so it works immediately. To use your **own
 > Your key stays on your own PC (config.json). Never share it publicly.
 > For Gemini instead: free key at **aistudio.google.com** → same Settings box.
 
+## 💎 Premium — ৳150 lifetime
+
+Premium unlocks **Camera Vision + Deep Research + Website Generator**, forever.
+
+**How to buy:**
+1. Send **৳150 via bKash** to the owner (contact via GitHub)
+2. Receive your `ALISA-XXXX-...` activation key
+3. Open ALISA → **Activation Center** (top bar) → paste key → **Activate ✨**
+
 ## 🚀 Run from source
 
 ```bat
