@@ -134,37 +134,120 @@ class AlisaApp(tk.Tk):
             pass
 
     def _login_dialog(self):
+        """Fullscreen professional login/register screen (borderless)."""
         win = tk.Toplevel(self)
         win.title("ALISA — Login")
-        win.geometry("400x430")
         win.configure(bg=BG)
         win.transient(self)
+        try:
+            win.state("zoomed")
+        except Exception:
+            pass
+        sw, sh = win.winfo_screenwidth(), win.winfo_screenheight()
+        try:
+            win.geometry(f"{sw}x{sh}+0+0")
+        except Exception:
+            pass
+        try:
+            win.overrideredirect(True)
+        except Exception:
+            pass
         win.grab_set()
-        tk.Label(win, text="💜 Welcome to ALISA", bg=BG, fg=GOLD,
-                 font=("Segoe UI", 18, "bold")).pack(pady=(20, 4))
-        tk.Label(win, text="Login to enter. New here? Register below — it's free!",
-                 bg=BG, fg=MUTED, font=("Segoe UI", 9),
-                 wraplength=340, justify="center").pack(padx=16)
-        tk.Label(win, text="Username", bg=BG, fg=TEXT,
-                 font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=40, pady=(14, 2))
-        u_entry = tk.Entry(win, font=("Segoe UI", 11), width=30)
-        u_entry.pack(padx=40, ipady=5)
+
+        outer = tk.Frame(win, bg=BG)
+        outer.pack(fill="both", expand=True)
+        # ── left branding ──
+        left = tk.Frame(outer, bg="#12082e", width=max(320, int(sw * 0.42)))
+        left.pack(side="left", fill="both", expand=False)
+        left.pack_propagate(False)
+        tk.Label(left, text="💜", bg="#12082e", font=("Segoe UI", 64)).pack(pady=(sh // 8, 0))
+        tk.Label(left, text="ALISA", bg="#12082e", fg=GOLD,
+                 font=("Segoe UI", 54, "bold")).pack()
+        tk.Label(left, text="Your AI Desktop Assistant", bg="#12082e", fg=TEXT,
+                 font=("Segoe UI", 14)).pack(pady=(0, 18))
+        for feat in ("💬 Free AI chat & voice", "🖥️ System control & automation",
+                     "👁 Vision, research & memory", "🔒 Private — your data stays yours"):
+            tk.Label(left, text=feat, bg="#12082e", fg=MUTED,
+                     font=("Segoe UI", 11)).pack(anchor="w", padx=60, pady=3)
+        tk.Label(left, text="© 2026 Swampod Sarkar", bg="#12082e", fg="#4a4468",
+                 font=("Segoe UI", 9)).pack(side="bottom", pady=24)
+
+        # ── right form ──
+        right = tk.Frame(outer, bg=BG)
+        right.pack(side="left", fill="both", expand=True)
+        card = tk.Frame(right, bg=PANEL2, padx=36, pady=28)
+        card.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.62)
+        tk.Label(card, text="Welcome back 👋", bg=PANEL2, fg=TEXT,
+                 font=("Segoe UI", 22, "bold")).pack(anchor="w")
+        tk.Label(card, text="Login to enter ALISA. New here? Register — it's free!",
+                 bg=PANEL2, fg=MUTED, font=("Segoe UI", 10)).pack(anchor="w", pady=(2, 12))
+
+        mode = {"tab": "login"}
+        tab_row = tk.Frame(card, bg=PANEL2)
+        tab_row.pack(fill="x", pady=(0, 10))
+        login_tab = tk.Button(tab_row, text="Login", relief="flat",
+                              font=("Segoe UI", 10, "bold"), padx=18, pady=7)
+        reg_tab = tk.Button(tab_row, text="Register", relief="flat",
+                            font=("Segoe UI", 10, "bold"), padx=18, pady=7)
+        login_tab.pack(side="left", padx=(0, 6))
+        reg_tab.pack(side="left")
+        submit = tk.Button(card, text="Login ➤", relief="flat",
+                           font=("Segoe UI", 12, "bold"), padx=20, pady=9)
+
+        def _paint_tabs():
+            active, idle = ("#eab308", "black"), ("#1c2547", MUTED)
+            login_tab.configure(bg=active[0] if mode["tab"] == "login" else idle[0],
+                                fg=active[1] if mode["tab"] == "login" else idle[1],
+                                activebackground="#ca8a04")
+            reg_tab.configure(bg=active[0] if mode["tab"] == "register" else idle[0],
+                              fg=active[1] if mode["tab"] == "register" else idle[1],
+                              activebackground="#1e40af")
+            submit.configure(text="Login ➤" if mode["tab"] == "login" else "Create account ✨",
+                             bg="#eab308" if mode["tab"] == "login" else "#1e3a8a",
+                             fg="black" if mode["tab"] == "login" else "white")
+
+        login_tab.configure(command=lambda: (mode.update(tab="login"), _paint_tabs()))
+        reg_tab.configure(command=lambda: (mode.update(tab="register"), _paint_tabs()))
+        _paint_tabs()
+
+        tk.Label(card, text="Username", bg=PANEL2, fg=TEXT,
+                 font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(4, 2))
+        u_entry = tk.Entry(card, font=("Segoe UI", 12), bg="#070b16", fg=TEXT,
+                           insertbackground=GOLD, relief="flat")
+        u_entry.pack(fill="x", ipady=8)
         u_entry.focus_set()
-        tk.Label(win, text="Password (6+ characters)", bg=BG, fg=TEXT,
-                 font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=40, pady=(10, 2))
-        p_entry = tk.Entry(win, font=("Segoe UI", 11), width=30, show="•")
-        p_entry.pack(padx=40, ipady=5)
-        p_entry.bind("<Return>", lambda _e: _do_login())
-        msg = tk.Label(win, text="", bg=BG, fg=RED, font=("Segoe UI", 9, "bold"),
-                       wraplength=320, justify="center")
-        msg.pack(pady=(8, 0))
+        tk.Label(card, text="Password (6+ characters)", bg=PANEL2, fg=TEXT,
+                 font=("Segoe UI", 10, "bold")).pack(anchor="w", pady=(10, 2))
+        pw_row = tk.Frame(card, bg=PANEL2)
+        pw_row.pack(fill="x")
+        p_entry = tk.Entry(pw_row, font=("Segoe UI", 12), bg="#070b16", fg=TEXT,
+                           insertbackground=GOLD, relief="flat", show="•")
+        p_entry.pack(side="left", fill="x", expand=True, ipady=8)
+        eye = tk.Button(pw_row, text="👁", bg="#070b16", fg=MUTED, relief="flat",
+                        font=("Segoe UI", 11), padx=10,
+                        command=lambda: p_entry.configure(
+                            show="" if p_entry.cget("show") == "•" else "•"))
+        eye.pack(side="left", padx=(6, 0), ipady=5)
+        msg = tk.Label(card, text="", bg=PANEL2, fg=RED, font=("Segoe UI", 9, "bold"),
+                       wraplength=360, justify="center")
+        msg.pack(pady=(10, 0))
+        submit.pack(fill="x", pady=(12, 0))
+        p_entry.bind("<Return>", lambda _e: _submit())
+        u_entry.bind("<Return>", lambda _e: p_entry.focus_set())
+        tk.Button(card, text="✕ Exit", bg=PANEL2, fg=MUTED, relief="flat",
+                  font=("Segoe UI", 9), command=lambda: (result.update(ok=False), win.destroy())).pack(pady=(8, 0))
         result = {}
 
         def _busy(text):
             msg.configure(text=text, fg=GOLD)
+            submit.configure(state="disabled")
             win.update_idletasks()
 
+        def _idle():
+            submit.configure(state="normal")
+
         def _finish(sess, err):
+            _idle()
             if sess:
                 d = cfg.load()
                 d["auth"] = sess
@@ -176,41 +259,26 @@ class AlisaApp(tk.Tk):
             else:
                 msg.configure(text="❌ " + (err or "Failed."), fg=RED)
 
-        def _do_login():
-            u, p = u_entry.get().strip(), p_entry.get()
-            if not u or not p:
-                msg.configure(text="Enter username + password.", fg=RED)
-                return
-            _busy("⏳ Logging in…")
-
-            def _w():
-                sess, err = fbauth.signin(u, p)
-                self.after(0, lambda: _finish(sess, err))
-
-            threading.Thread(target=_w, daemon=True).start()
-
-        def _do_register():
+        def _submit():
             u, p = u_entry.get().strip(), p_entry.get()
             if not u or len(p) < 6:
                 msg.configure(text="Username + 6+ character password needed.", fg=RED)
                 return
-            _busy("⏳ Creating account…")
+            if mode["tab"] == "login":
+                _busy("⏳ Logging in…")
+                fn = fbauth.signin
+            else:
+                _busy("⏳ Creating account…")
+                fn = fbauth.signup
 
             def _w():
-                sess, err = fbauth.signup(u, p)
+                sess, err = fn(u, p)
                 self.after(0, lambda: _finish(sess, err))
 
             threading.Thread(target=_w, daemon=True).start()
 
-        row = tk.Frame(win, bg=BG)
-        row.pack(pady=14)
-        tk.Button(row, text="Login ➤", bg=GOLD, fg="black", relief="flat",
-                  font=("Segoe UI", 11, "bold"), padx=26, pady=8,
-                  activebackground="#ca8a04", command=_do_login).pack(side="left", padx=5)
-        tk.Button(row, text="Register", bg="#1e3a8a", fg="white", relief="flat",
-                  font=("Segoe UI", 11, "bold"), padx=26, pady=8,
-                  activebackground="#1e40af", command=_do_register).pack(side="left", padx=5)
-        win.protocol("WM_DELETE_WINDOW", win.destroy)
+        submit.configure(command=_submit)
+        win.protocol("WM_DELETE_WINDOW", lambda: (result.update(ok=False), win.destroy()))
         self.wait_window(win)
         try:
             win.grab_release()
