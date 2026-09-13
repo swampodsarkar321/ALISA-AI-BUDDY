@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "alisa-assistant"
+version = "1.0.1"
+description = "ALISA — AI desktop assistant for Windows: voice, vision, system control, free AI chat"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Swampod Sarkar" }]
+keywords = ["ai-assistant", "desktop-assistant", "gemini", "voice-assistant", "windows-automation"]
+dependencies = [
+    "google-generativeai",
+    "pyttsx3",
+    "SpeechRecognition",
+    "screen-brightness-control",
+    "pillow",
+    "psutil",
+    "opencv-python",
+    "pytesseract",
+    "pycaw; platform_system=='Windows'",
+    "comtypes; platform_system=='Windows'",
+]
+
+[project.optional-dependencies]
+audio = ["PyAudio"]
+
+[project.scripts]
+alisa = "alisa.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["alisa*"]

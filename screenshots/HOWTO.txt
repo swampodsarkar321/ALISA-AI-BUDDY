@@ -1,0 +1,10 @@
+# Screenshots (add yours here!)
+
+1. Run ALISA: `python main.py`
+2. Press `Win + Shift + S` and capture:
+   - Full dashboard → save as `dashboard.png`
+   - Chat with tools → save as `chat.png`
+   - Vision/emotion moment → save as `vision.png`
+3. `git add screenshots/*.png` → commit → push
+
+README shows these three automatically.

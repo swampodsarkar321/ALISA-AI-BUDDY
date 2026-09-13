@@ -1,0 +1,16 @@
+# ALISA — install everything for 100% working features
+#   pip install -r requirements.txt
+google-generativeai
+pyttsx3
+SpeechRecognition
+PyAudio
+screen-brightness-control
+pycaw
+comtypes
+pillow
+psutil
+opencv-python
+pytesseract
+# NOTE: pytesseract also needs the Tesseract program itself:
+#   https://github.com/UB-Mannheim/tesseract/wiki
+#   (tesseract-ocr-w64-setup.exe → install → restart ALISA)
