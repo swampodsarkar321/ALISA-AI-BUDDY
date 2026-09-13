@@ -10,6 +10,7 @@ import urllib.request
 
 from . import config as cfg
 from . import license as lic
+from . import fbauth
 from .ai_client import GeminiClient, DEFAULT_OR_KEY
 from .updater import APP_VERSION, check_update, check_announcement
 from .brain import handle_command
@@ -104,7 +105,118 @@ class AlisaApp(tk.Tk):
         threading.Thread(target=self._stats_worker, daemon=True).start()
         threading.Thread(target=self._license_recheck, daemon=True).start()
         threading.Thread(target=self._update_check, daemon=True).start()
+        self.session = None
+        if not self._ensure_login():
+            self.destroy()
+            return
         self._say("Systems online. I'm ALISA — ask me anything, or pick a tool on the left.", speak=False)
+
+    # ── login gate ──
+    def _ensure_login(self):
+        saved = cfg.load().get("auth")
+        sess = fbauth.valid_session(saved) if saved else None
+        if not sess and saved:
+            sess = fbauth.refresh(dict(saved))
+            if sess:
+                d = cfg.load()
+                d["auth"] = sess
+                cfg.save(d)
+        if sess:
+            self.session = sess
+            threading.Thread(target=self._presence_login, daemon=True).start()
+            return True
+        return self._login_dialog()
+
+    def _presence_login(self):
+        try:
+            fbauth.write_user_record(self.session, {"plan": "premium" if lic.is_premium() else "free"})
+        except Exception:
+            pass
+
+    def _login_dialog(self):
+        win = tk.Toplevel(self)
+        win.title("ALISA — Login")
+        win.geometry("400x430")
+        win.configure(bg=BG)
+        win.transient(self)
+        win.grab_set()
+        tk.Label(win, text="💜 Welcome to ALISA", bg=BG, fg=GOLD,
+                 font=("Segoe UI", 18, "bold")).pack(pady=(20, 4))
+        tk.Label(win, text="Login to enter. New here? Register below — it's free!",
+                 bg=BG, fg=MUTED, font=("Segoe UI", 9),
+                 wraplength=340, justify="center").pack(padx=16)
+        tk.Label(win, text="Username", bg=BG, fg=TEXT,
+                 font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=40, pady=(14, 2))
+        u_entry = tk.Entry(win, font=("Segoe UI", 11), width=30)
+        u_entry.pack(padx=40, ipady=5)
+        u_entry.focus_set()
+        tk.Label(win, text="Password (6+ characters)", bg=BG, fg=TEXT,
+                 font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=40, pady=(10, 2))
+        p_entry = tk.Entry(win, font=("Segoe UI", 11), width=30, show="•")
+        p_entry.pack(padx=40, ipady=5)
+        p_entry.bind("<Return>", lambda _e: _do_login())
+        msg = tk.Label(win, text="", bg=BG, fg=RED, font=("Segoe UI", 9, "bold"),
+                       wraplength=320, justify="center")
+        msg.pack(pady=(8, 0))
+        result = {}
+
+        def _busy(text):
+            msg.configure(text=text, fg=GOLD)
+            win.update_idletasks()
+
+        def _finish(sess, err):
+            if sess:
+                d = cfg.load()
+                d["auth"] = sess
+                cfg.save(d)
+                self.session = sess
+                threading.Thread(target=self._presence_login, daemon=True).start()
+                result["ok"] = True
+                win.destroy()
+            else:
+                msg.configure(text="❌ " + (err or "Failed."), fg=RED)
+
+        def _do_login():
+            u, p = u_entry.get().strip(), p_entry.get()
+            if not u or not p:
+                msg.configure(text="Enter username + password.", fg=RED)
+                return
+            _busy("⏳ Logging in…")
+
+            def _w():
+                sess, err = fbauth.signin(u, p)
+                self.after(0, lambda: _finish(sess, err))
+
+            threading.Thread(target=_w, daemon=True).start()
+
+        def _do_register():
+            u, p = u_entry.get().strip(), p_entry.get()
+            if not u or len(p) < 6:
+                msg.configure(text="Username + 6+ character password needed.", fg=RED)
+                return
+            _busy("⏳ Creating account…")
+
+            def _w():
+                sess, err = fbauth.signup(u, p)
+                self.after(0, lambda: _finish(sess, err))
+
+            threading.Thread(target=_w, daemon=True).start()
+
+        row = tk.Frame(win, bg=BG)
+        row.pack(pady=14)
+        tk.Button(row, text="Login ➤", bg=GOLD, fg="black", relief="flat",
+                  font=("Segoe UI", 11, "bold"), padx=26, pady=8,
+                  activebackground="#ca8a04", command=_do_login).pack(side="left", padx=5)
+        tk.Button(row, text="Register", bg="#1e3a8a", fg="white", relief="flat",
+                  font=("Segoe UI", 11, "bold"), padx=26, pady=8,
+                  activebackground="#1e40af", command=_do_register).pack(side="left", padx=5)
+        win.protocol("WM_DELETE_WINDOW", win.destroy)
+        self.wait_window(win)
+        try:
+            win.grab_release()
+        except Exception:
+            pass
+        return result.get("ok", False)
 
     def _update_check(self):
         try:
@@ -755,4 +867,24 @@ class AlisaApp(tk.Tk):
 
 
 def main():
+    import sys as _sys
+    import threading as _th
+    import traceback as _tb
+
+    def _log(exc, val, tb):
+        try:
+            with open(os.path.join(os.path.expanduser("~"), "Desktop",
+                                   "alisa-error.log"), "a", encoding="utf-8") as f:
+                f.write("".join(_tb.format_exception(exc, val, tb)))
+                f.write("\n" + "=" * 60 + "\n")
+        except Exception:
+            pass
+
+    _sys.excepthook = lambda e, v, t: _log(e, v, t)
+    _th.excepthook = lambda a: _log(a.exc_type, a.exc_value, a.exc_traceback)
+
+    def _tk_report(exc, val, tb):
+        _log(exc, val, tb)
+
+    tk.Tk.report_callback_exception = _tk_report
     AlisaApp().mainloop()
