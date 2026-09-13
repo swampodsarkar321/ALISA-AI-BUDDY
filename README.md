@@ -3,7 +3,6 @@
 **Voice Commands • AI Automation • Screen Reading • Computer Vision • System Control • Human-Like Voice • Website Generation • Productivity Tools**
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-blue)](https://www.python.org/downloads/)
-[![PyPI](https://img.shields.io/badge/PyPI-alisa--assistant-purple)](https://pypi.org/project/alisa-assistant/)
 [![License: Proprietary](https://img.shields.io/badge/License-Proprietary-red)](./LICENSE)
 
 ## 📖 About ALISA
@@ -103,14 +102,6 @@ pyinstaller --noconfirm --onefile --windowed --name ALISA --icon assets/icon.ico
 ```
 Fresh `dist\ALISA.exe` → attach to a new GitHub Release → buyers download.
 
-### 🧑‍💻 Option 2 — For developers (pip)
-
-```bat
-pip install alisa-assistant
-alisa
-```
-Update: `pip install --upgrade alisa-assistant` · Remove: `pip uninstall alisa-assistant`
-
 ## 🔑 OpenRouter API key setup (2 min, FREE)
 
 ALISA ships with a built-in free key, so it works immediately. To use your **own** key (recommended for heavy use):
@@ -132,10 +123,9 @@ Premium unlocks **Camera Vision + Deep Research + Website Generator**, forever.
 2. Receive your `ALISA-XXXX-...` activation key
 3. Open ALISA → **Activation Center** (top bar) → paste key → **Activate ✨**
 
-## 🚀 Run from source
+## 🧑‍💻 For the owner (source run)
 
 ```bat
-cd D:\ALISA
 pip install -r requirements.txt
 python main.py
 ```
