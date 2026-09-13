@@ -85,36 +85,31 @@ Designed for creators, developers, students and professionals, ALISA works **out
 
 ## 📦 Installation
 
-### Step 1 — Install Python (3.10+)
+### ✅ Option 1 — Download .exe (recommended, no install!)
 
-Download: **https://www.python.org/downloads/** — tick **Add Python to PATH**.
+**Get ALISA.exe** (~230 MB, Windows 10/11 64-bit) from
+**[Releases](https://github.com/swampodsarkar321/ALISA-AI-BUDDY/releases)** —
+double-click and done! No Python, no pip, nothing to install.
 
-### Step 2 — Install ALISA
+Direct link (v1.0.0):
+**https://github.com/swampodsarkar321/ALISA-AI-BUDDY/releases/download/v1.0.0/ALISA.exe**
+
+Settings save automatically to `%APPDATA%/ALISA`.
+
+### 🖥️ Sellers: rebuild the exe
+
+```bat
+pyinstaller --noconfirm --onefile --windowed --name ALISA --icon assets/icon.ico main.py
+```
+Fresh `dist\ALISA.exe` → attach to a new GitHub Release → buyers download.
+
+### 🧑‍💻 Option 2 — For developers (pip)
 
 ```bat
 pip install alisa-assistant
-```
-
-### Step 3 — Launch
-
-```bat
 alisa
 ```
-
-### 🖥️ No-install version (recommended for buyers)
-
-Download **ALISA.exe** (~230 MB, Windows 10/11 64-bit) → double-click → done!
-No Python, no pip, nothing to install. Settings save to `%APPDATA%/ALISA`.
-
-> Buyers get the .exe + activation key. Sellers: rebuild with
-> `pyinstaller --noconfirm --onefile --windowed --name ALISA --icon assets/icon.ico main.py`
-
-### Update / Uninstall
-
-```bat
-pip install --upgrade alisa-assistant
-pip uninstall alisa-assistant
-```
+Update: `pip install --upgrade alisa-assistant` · Remove: `pip uninstall alisa-assistant`
 
 ## 🔑 OpenRouter API key setup (2 min, FREE)
 
