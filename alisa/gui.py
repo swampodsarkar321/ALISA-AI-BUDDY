@@ -11,7 +11,7 @@ import urllib.request
 from . import config as cfg
 from . import license as lic
 from .ai_client import GeminiClient, DEFAULT_OR_KEY
-from .updater import APP_VERSION, check_update
+from .updater import APP_VERSION, check_update, check_announcement
 from .brain import handle_command
 from .hero import draw_hero
 from .memory import load_facts
@@ -118,6 +118,40 @@ class AlisaApp(tk.Tk):
                                "sys", False)
         except Exception:
             pass
+        try:
+            lic.report_presence()
+        except Exception:
+            pass
+        try:
+            ann = check_announcement()
+            if ann:
+                seen = set(cfg.load().get("seen_ann", []))
+                if ann["id"] not in seen:
+                    seen.add(ann["id"])
+                    d = cfg.load()
+                    d["seen_ann"] = sorted(seen)[-20:]
+                    cfg.save(d)
+                    self.after(0, lambda: self._announce_dialog(ann))
+        except Exception:
+            pass
+
+    def _announce_dialog(self, ann):
+        win = tk.Toplevel(self)
+        win.title("📢 Notice")
+        win.geometry("420x300")
+        win.configure(bg=BG)
+        win.transient(self)
+        tk.Label(win, text="📢 " + ann["title"], bg=BG, fg=GOLD,
+                 font=("Segoe UI", 14, "bold"), wraplength=380,
+                 justify="center").pack(pady=(16, 8))
+        box = tk.Text(win, bg=PANEL2, fg=TEXT, font=("Segoe UI", 10), wrap="word",
+                      height=8, relief="flat", padx=10, pady=8)
+        box.pack(fill="both", expand=True, padx=20)
+        box.insert("end", ann["body"])
+        box.configure(state="disabled")
+        tk.Button(win, text="Got it ✓", bg=GOLD, fg="black", relief="flat",
+                  font=("Segoe UI", 10, "bold"), padx=24, pady=7,
+                  activebackground="#ca8a04", command=win.destroy).pack(pady=12)
 
     def _updates_dialog(self):
         info = self.update_info

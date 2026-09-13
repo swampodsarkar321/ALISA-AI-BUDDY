@@ -147,6 +147,29 @@ def save_license(key, checked_now=True):
         return False
 
 
+def report_presence():
+    """Best-effort heartbeat so the owner panel shows active devices."""
+    try:
+        from .updater import APP_VERSION
+        saved = load_license()
+        if saved["plan"] != "premium":
+            return
+        h = key_hash(saved["key"])
+        try:
+            cur = _rest("GET", h) or {}
+        except Exception:
+            return
+        payload = {"lastSeen": int(time.time()), "appVersion": APP_VERSION}
+        if "firstSeen" not in cur:
+            payload["firstSeen"] = int(time.time())
+        try:
+            _rest("PATCH", h, payload)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
+
 def recheck_saved_key():
     """Re-verify the saved key online (cheap, runs at startup in background).
 

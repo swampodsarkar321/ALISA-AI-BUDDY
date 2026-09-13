@@ -6,5 +6,7 @@ contacts.json
 *.egg-info/
 build/
 dist/
-
 sold_keys.txt
+tools/admin_config.json
+*firebase-adminsdk*.json
+service-account*.json

@@ -51,3 +51,18 @@ def check_update():
         }
     except Exception:
         return None
+
+def check_announcement():
+    """Returns {id, title, body} or None."""
+    try:
+        with urllib.request.urlopen(
+            "https://chat-2-me-c3213-default-rtdb.firebaseio.com/meta/announcement.json",
+            timeout=10,
+        ) as r:
+            data = json.load(r)
+        if not data or not data.get("id"):
+            return None
+        return {"id": str(data["id"]), "title": str(data.get("title", "Notice")),
+                "body": str(data.get("body", ""))}
+    except Exception:
+        return None
