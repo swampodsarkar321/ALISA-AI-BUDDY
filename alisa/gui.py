@@ -11,6 +11,7 @@ import urllib.request
 from . import config as cfg
 from . import license as lic
 from .ai_client import GeminiClient, DEFAULT_OR_KEY
+from .updater import APP_VERSION, check_update
 from .brain import handle_command
 from .hero import draw_hero
 from .memory import load_facts
@@ -102,7 +103,55 @@ class AlisaApp(tk.Tk):
         self._animate_orb()
         threading.Thread(target=self._stats_worker, daemon=True).start()
         threading.Thread(target=self._license_recheck, daemon=True).start()
+        threading.Thread(target=self._update_check, daemon=True).start()
         self._say("Systems online. I'm ALISA — ask me anything, or pick a tool on the left.", speak=False)
+
+    def _update_check(self):
+        try:
+            info = check_update()
+            if info:
+                self.update_info = info
+                if info.get("update"):
+                    self.after(0, lambda: self.bell_btn.configure(text="🔔●", fg=RED))
+                    self.after(0, self._say,
+                               f"📢 Update available: v{info['latest']} is out! Click the 🔔 bell to see what's new.",
+                               "sys", False)
+        except Exception:
+            pass
+
+    def _updates_dialog(self):
+        info = self.update_info
+        win = tk.Toplevel(self)
+        win.title("ALISA Updates")
+        win.geometry("440x380")
+        win.configure(bg=BG)
+        win.transient(self)
+        tk.Label(win, text="🔔 Update Channel", bg=BG, fg=GOLD,
+                 font=("Segoe UI", 16, "bold")).pack(pady=(16, 4))
+        tk.Label(win, text=f"Your version: v{APP_VERSION}", bg=BG, fg=MUTED,
+                 font=("Segoe UI", 10)).pack()
+        if not info:
+            tk.Label(win, text="Couldn't reach the update server.\nCheck your internet and try again.",
+                     bg=BG, fg=TEXT, font=("Segoe UI", 10), wraplength=380,
+                     justify="center").pack(pady=12)
+        elif not info.get("update"):
+            tk.Label(win, text=f"✅ You're on the latest version (v{info.get('latest', APP_VERSION)})!",
+                     bg=BG, fg=GREEN, font=("Segoe UI", 11, "bold"), wraplength=380,
+                     justify="center").pack(pady=12)
+        else:
+            tk.Label(win, text=f"🎉 v{info['latest']} is available!",
+                     bg=BG, fg=GREEN, font=("Segoe UI", 13, "bold")).pack(pady=(8, 2))
+            tk.Label(win, text="What's new:", bg=BG, fg=TEXT,
+                     font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=20)
+            box = tk.Text(win, bg=PANEL2, fg=TEXT, font=("Segoe UI", 10), wrap="word",
+                          height=8, relief="flat", padx=10, pady=8)
+            box.pack(fill="both", expand=True, padx=20, pady=(4, 8))
+            box.insert("end", info.get("notes", ""))
+            box.configure(state="disabled")
+            tk.Button(win, text="⬇ Download Update", bg=GOLD, fg="black", relief="flat",
+                      font=("Segoe UI", 11, "bold"), padx=24, pady=8,
+                      activebackground="#ca8a04",
+                      command=lambda: __import__("webbrowser").open(info["url"])).pack(pady=(0, 14))
 
     def _license_recheck(self):
         try:
@@ -147,6 +196,12 @@ class AlisaApp(tk.Tk):
                                    activebackground="#2a3563", activeforeground="white",
                                    command=self._activation)
         self.plan_pill.pack(side="left", padx=3)
+        self.update_info = None
+        self.bell_btn = tk.Button(pills, text="🔔", bg="#1c2547", fg=MUTED, relief="flat",
+                                  font=("Consolas", 9, "bold"), padx=10, pady=3,
+                                  activebackground="#2a3563", activeforeground="white",
+                                  command=self._updates_dialog)
+        self.bell_btn.pack(side="left", padx=3)
         tk.Button(pills, text="💜 ALISA MODE", bg="#2a1030", fg="#e879f9", relief="flat",
                   font=("Consolas", 9, "bold"), padx=10, pady=3,
                   activebackground="#4a044e", activeforeground="white",
