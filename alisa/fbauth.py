@@ -10,8 +10,8 @@ import time
 import urllib.error
 import urllib.request
 
-# Owner: paste Web API Key here (Firebase Console → Project settings → General).
-WEB_API_KEY = ""
+# Public web key (safe to embed — access enforced by Auth + DB rules).
+WEB_API_KEY = "AIzaSyCwpylnjqWQLBpgoiStlrE01o95aKP3JSY"
 DB_URL = "https://chat-2-me-c3213-default-rtdb.firebaseio.com"
 IDENTITY = "https://identitytoolkit.googleapis.com/v1/accounts"
 SECURETOKEN = "https://securetoken.googleapis.com/v1/token"
