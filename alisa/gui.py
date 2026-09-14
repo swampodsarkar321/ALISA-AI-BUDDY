@@ -4,6 +4,7 @@ import datetime
 import math
 import random
 import threading
+import time
 import tkinter as tk
 from tkinter import messagebox
 import urllib.request
@@ -264,7 +265,6 @@ class AlisaApp(tk.Tk):
                 msg.configure(text="Username + 6+ character password needed.", fg=RED)
                 return
             attempt["n"] += 1
-            my_attempt = attempt["n"]
             if mode["tab"] == "login":
                 _busy("⏳ Logging in…")
                 fn = fbauth.signin
@@ -272,21 +272,40 @@ class AlisaApp(tk.Tk):
                 _busy("⏳ Creating account…")
                 fn = fbauth.signup
 
-            def _watchdog():
-                # never leave the button stuck: if no answer in 35s, unlock UI
-                if attempt["n"] == my_attempt and "ok" not in result:
-                    _idle()
-                    msg.configure(text="⚠️ Taking too long — check internet & try again.", fg=GOLD)
+            state = {"done": False, "sess": None, "err": None}
+            t0 = time.monotonic()
 
             def _w():
                 try:
                     sess, err = fn(u, p)
                 except Exception as e:
                     sess, err = None, str(e)[:150]
-                self.after(0, lambda: _finish(sess, err))
+                state.update(done=True, sess=sess, err=err)
+
+            def _poll():
+                # runs on main thread — never hangs, never needs cross-thread after()
+                try:
+                    if not win.winfo_exists():
+                        return
+                except Exception:
+                    return
+                if state["done"]:
+                    _finish(state["sess"], state["err"])
+                    return
+                if time.monotonic() - t0 > 40:
+                    _idle()
+                    msg.configure(text="⚠️ Taking too long — check internet & try again.", fg=GOLD)
+                    return
+                try:
+                    win.after(200, _poll)
+                except Exception:
+                    pass
 
             threading.Thread(target=_w, daemon=True).start()
-            win.after(35000, _watchdog)
+            try:
+                win.after(200, _poll)
+            except Exception:
+                pass
 
         submit.configure(command=_submit)
         win.protocol("WM_DELETE_WINDOW", lambda: (result.update(ok=False), win.destroy()))
