@@ -14,8 +14,10 @@ _cache = {"at": 0, "entries": []}
 
 def _normalize(s):
     s = str(s or "")
-    # unify commonly mixed-up Bengali letters + strip invisible chars
-    s = s.replace("য়", "য").replace("\u200c", "").replace("\u200d", "")
+    # unify commonly mixed-up Bengali spellings + strip invisible chars:
+    # য় (U+09DF) and য + ় nukta (U+09AF U+09BC) are typed interchangeably
+    s = s.replace("য়", "য").replace("য\u09bc", "য")
+    s = s.replace("\u200c", "").replace("\u200d", "")
     return s
 
 
