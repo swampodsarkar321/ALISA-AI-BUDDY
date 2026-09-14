@@ -106,8 +106,14 @@ class AlisaApp(tk.Tk):
         threading.Thread(target=self._license_recheck, daemon=True).start()
         threading.Thread(target=self._update_check, daemon=True).start()
         self.session = None
-        if not self._ensure_login():
-            self.destroy()
+        self.login_ok = False
+        if self._ensure_login():
+            self.login_ok = True
+        else:
+            try:
+                self.destroy()
+            except Exception:
+                pass
             return
         self._say("Systems online. I'm ALISA — ask me anything, or pick a tool on the left.", speak=False)
 
@@ -134,49 +140,41 @@ class AlisaApp(tk.Tk):
             pass
 
     def _login_dialog(self):
-        """Fullscreen professional login/register screen (borderless)."""
+        """Professional login/register dialog — blocks until login succeeds or user exits."""
         win = tk.Toplevel(self)
         win.title("ALISA — Login")
+        win.geometry("520x540")
+        win.minsize(480, 520)
         win.configure(bg=BG)
         win.transient(self)
-        try:
-            win.state("zoomed")
-        except Exception:
-            pass
-        sw, sh = win.winfo_screenwidth(), win.winfo_screenheight()
-        try:
-            win.geometry(f"{sw}x{sh}+0+0")
-        except Exception:
-            pass
-        try:
-            win.overrideredirect(True)
-        except Exception:
-            pass
         win.grab_set()
+        win.focus_set()
+        win.lift()
+        try:
+            win.attributes("-topmost", True)
+            win.after(500, lambda: win.attributes("-topmost", False))
+        except Exception:
+            pass
+        try:
+            win.update_idletasks()
+            sw, sh = win.winfo_screenwidth(), win.winfo_screenheight()
+            ww, wh = 520, 540
+            win.geometry(f"{ww}x{wh}+{(sw - ww)//2}+{(sh - wh)//2}")
+        except Exception:
+            pass
 
         outer = tk.Frame(win, bg=BG)
-        outer.pack(fill="both", expand=True)
-        # ── left branding ──
-        left = tk.Frame(outer, bg="#12082e", width=max(320, int(sw * 0.42)))
-        left.pack(side="left", fill="both", expand=False)
-        left.pack_propagate(False)
-        tk.Label(left, text="💜", bg="#12082e", font=("Segoe UI", 64)).pack(pady=(sh // 8, 0))
-        tk.Label(left, text="ALISA", bg="#12082e", fg=GOLD,
-                 font=("Segoe UI", 54, "bold")).pack()
-        tk.Label(left, text="Your AI Desktop Assistant", bg="#12082e", fg=TEXT,
-                 font=("Segoe UI", 14)).pack(pady=(0, 18))
-        for feat in ("💬 Free AI chat & voice", "🖥️ System control & automation",
-                     "👁 Vision, research & memory", "🔒 Private — your data stays yours"):
-            tk.Label(left, text=feat, bg="#12082e", fg=MUTED,
-                     font=("Segoe UI", 11)).pack(anchor="w", padx=60, pady=3)
-        tk.Label(left, text="© 2026 Swampod Sarkar", bg="#12082e", fg="#4a4468",
-                 font=("Segoe UI", 9)).pack(side="bottom", pady=24)
+        outer.pack(fill="both", expand=True, padx=20, pady=16)
 
-        # ── right form ──
-        right = tk.Frame(outer, bg=BG)
-        right.pack(side="left", fill="both", expand=True)
-        card = tk.Frame(right, bg=PANEL2, padx=36, pady=28)
-        card.place(relx=0.5, rely=0.5, anchor="center", relwidth=0.62)
+        head = tk.Frame(outer, bg=BG)
+        head.pack(fill="x", pady=(0, 8))
+        tk.Label(head, text="💜 ALISA", bg=BG, fg=GOLD,
+                 font=("Segoe UI", 20, "bold")).pack(side="left")
+        tk.Label(head, text="  Your AI Desktop Assistant  •  © Swampod Sarkar",
+                 bg=BG, fg=MUTED, font=("Segoe UI", 9)).pack(side="left", pady=(6, 0))
+
+        card = tk.Frame(outer, bg=PANEL2, padx=28, pady=22)
+        card.pack(fill="both", expand=True)
         tk.Label(card, text="Welcome back 👋", bg=PANEL2, fg=TEXT,
                  font=("Segoe UI", 22, "bold")).pack(anchor="w")
         tk.Label(card, text="Login to enter ALISA. New here? Register — it's free!",
@@ -237,6 +235,7 @@ class AlisaApp(tk.Tk):
         tk.Button(card, text="✕ Exit", bg=PANEL2, fg=MUTED, relief="flat",
                   font=("Segoe UI", 9), command=lambda: (result.update(ok=False), win.destroy())).pack(pady=(8, 0))
         result = {}
+        attempt = {"n": 0}
 
         def _busy(text):
             msg.configure(text=text, fg=GOLD)
@@ -264,6 +263,8 @@ class AlisaApp(tk.Tk):
             if not u or len(p) < 6:
                 msg.configure(text="Username + 6+ character password needed.", fg=RED)
                 return
+            attempt["n"] += 1
+            my_attempt = attempt["n"]
             if mode["tab"] == "login":
                 _busy("⏳ Logging in…")
                 fn = fbauth.signin
@@ -271,11 +272,21 @@ class AlisaApp(tk.Tk):
                 _busy("⏳ Creating account…")
                 fn = fbauth.signup
 
+            def _watchdog():
+                # never leave the button stuck: if no answer in 35s, unlock UI
+                if attempt["n"] == my_attempt and "ok" not in result:
+                    _idle()
+                    msg.configure(text="⚠️ Taking too long — check internet & try again.", fg=GOLD)
+
             def _w():
-                sess, err = fn(u, p)
+                try:
+                    sess, err = fn(u, p)
+                except Exception as e:
+                    sess, err = None, str(e)[:150]
                 self.after(0, lambda: _finish(sess, err))
 
             threading.Thread(target=_w, daemon=True).start()
+            win.after(35000, _watchdog)
 
         submit.configure(command=_submit)
         win.protocol("WM_DELETE_WINDOW", lambda: (result.update(ok=False), win.destroy()))
@@ -923,22 +934,36 @@ class AlisaApp(tk.Tk):
         tk.Label(win, text="Keys: aistudio.google.com · openrouter.ai/keys", bg=BG, fg=MUTED, font=("Segoe UI", 9)).pack(padx=16, pady=(8, 0))
 
         def _save():
-            cfg.save({"gemini_key": g_entry.get().strip(), "openrouter_key": o_entry.get().strip()})
+            d = cfg.load()
+            d["gemini_key"] = g_entry.get().strip()
+            d["openrouter_key"] = o_entry.get().strip()
+            cfg.save(d)
             s = cfg.load()
             self.ai = GeminiClient(s.get("gemini_key", ""), s.get("openrouter_key", ""))
             self._refresh_status()
             messagebox.showinfo("ALISA", "Saved! AI: " + self.ai.provider if self.ai.ready else "Saved! AI still off (no key).")
             win.destroy()
 
-        tk.Button(win, text="Save", bg=GOLD, fg="black", relief="flat",
-                  font=("Segoe UI", 10, "bold"), padx=20, pady=6, command=_save).pack(pady=12)
+        def _logout():
+            d = cfg.load()
+            d.pop("auth", None)
+            cfg.save(d)
+            self.session = None
+            messagebox.showinfo("ALISA", "Logged out! Restart the app to login again.")
+            win.destroy()
+
+        btn_row = tk.Frame(win, bg=BG)
+        btn_row.pack(pady=12)
+        tk.Button(btn_row, text="Save", bg=GOLD, fg="black", relief="flat",
+                  font=("Segoe UI", 10, "bold"), padx=20, pady=6, command=_save).pack(side="left", padx=5)
+        tk.Button(btn_row, text="Logout", bg="#7f1d1d", fg="white", relief="flat",
+                  font=("Segoe UI", 10, "bold"), padx=20, pady=6, command=_logout).pack(side="left", padx=5)
 
 
 def main():
     import sys as _sys
     import threading as _th
     import traceback as _tb
-
     def _log(exc, val, tb):
         try:
             with open(os.path.join(os.path.expanduser("~"), "Desktop",
@@ -955,4 +980,12 @@ def main():
         _log(exc, val, tb)
 
     tk.Tk.report_callback_exception = _tk_report
-    AlisaApp().mainloop()
+    app = AlisaApp()
+    if not getattr(app, "login_ok", False):
+        # login failed/cancelled — exit without ever showing the dashboard
+        try:
+            app.destroy()
+        except Exception:
+            pass
+        return
+    app.mainloop()
