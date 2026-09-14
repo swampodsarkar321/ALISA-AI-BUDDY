@@ -653,4 +653,13 @@ def _single(text, system):
     if low in _BARE_HINTS:
         return (_BARE_HINTS[low], False)
 
+    # ── owner knowledge base (taught from admin panel) ──
+    try:
+        from .knowledge import cached_entries, find_answer
+        _kb_hit = find_answer(t, cached_entries())
+        if _kb_hit:
+            return (_kb_hit, False)
+    except Exception:
+        pass
+
     return "", True  # fall through to Gemini AI

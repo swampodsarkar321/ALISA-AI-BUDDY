@@ -106,6 +106,7 @@ class AlisaApp(tk.Tk):
         threading.Thread(target=self._stats_worker, daemon=True).start()
         threading.Thread(target=self._license_recheck, daemon=True).start()
         threading.Thread(target=self._update_check, daemon=True).start()
+        threading.Thread(target=self._kb_refresh, daemon=True).start()
         self.session = None
         self.login_ok = False
         if self._ensure_login():
@@ -440,6 +441,13 @@ class AlisaApp(tk.Tk):
                       font=("Segoe UI", 11, "bold"), padx=24, pady=8,
                       activebackground="#ca8a04",
                       command=lambda: __import__("webbrowser").open(info["url"])).pack(pady=(0, 14))
+
+    def _kb_refresh(self):
+        try:
+            from . import knowledge as _kb
+            _kb.refresh()
+        except Exception:
+            pass
 
     def _license_recheck(self):
         try:
