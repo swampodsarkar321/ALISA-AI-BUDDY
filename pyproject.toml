@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "alisa-assistant"
-version = "1.0.1"
+version = "1.0"
 description = "ALISA — AI desktop assistant for Windows: voice, vision, system control, free AI chat"
 readme = "README.md"
 requires-python = ">=3.10"

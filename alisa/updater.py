@@ -12,7 +12,7 @@ Rules needed once: {"rules": {"meta": {".read": true}, ...}}
 import json
 import urllib.request
 
-APP_VERSION = "1.0.1"
+APP_VERSION = "1.0"
 APPCAST_URL = "https://chat-2-me-c3213-default-rtdb.firebaseio.com/meta/appcast.json"
 
 
