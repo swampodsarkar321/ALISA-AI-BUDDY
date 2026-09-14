@@ -345,6 +345,41 @@ class AlisaApp(tk.Tk):
         except Exception:
             pass
 
+    def _auto_update(self, win, info, prog):
+        import os
+        import tempfile
+        import threading
+        from alisa import updater as _upd
+
+        def _set(text):
+            try:
+                self.after(0, lambda: prog.configure(text=text))
+            except Exception:
+                pass
+
+        def _worker():
+            try:
+                _set("⬇ Downloading… 0%")
+                dest = os.path.join(tempfile.gettempdir(), "ALISA-new.exe")
+                if os.path.exists(dest):
+                    os.remove(dest)
+
+                def _prog(got, total):
+                    pct = int(got * 100 / total) if total else 0
+                    mb = got / 1048576
+                    _set(f"⬇ Downloading… {pct}% ({mb:.0f} MB)")
+
+                _upd.download_update(info["url"], dest, _prog)
+                _set("🔄 Restarting to finish update…")
+                if _upd.apply_update(dest):
+                    self.after(0, lambda: (win.destroy(), self.destroy()))
+                else:
+                    _set("Open the downloaded file to update.")
+            except Exception as e:
+                _set(f"❌ Update failed: {str(e)[:80]}")
+
+        threading.Thread(target=_worker, daemon=True).start()
+
     def _announce_dialog(self, ann):
         win = tk.Toplevel(self)
         win.title("📢 Notice")
@@ -392,6 +427,15 @@ class AlisaApp(tk.Tk):
             box.pack(fill="both", expand=True, padx=20, pady=(4, 8))
             box.insert("end", info.get("notes", ""))
             box.configure(state="disabled")
+            import sys as _sys
+            from alisa import updater as _upd
+            if getattr(_sys, "frozen", False) and _upd.is_exe_update(info.get("url", "")):
+                prog = tk.Label(win, text="", bg=BG, fg=GOLD, font=("Segoe UI", 9, "bold"))
+                prog.pack()
+                tk.Button(win, text="⬇ Auto-Update Now", bg=GOLD, fg="black", relief="flat",
+                          font=("Segoe UI", 11, "bold"), padx=24, pady=8,
+                          activebackground="#ca8a04",
+                          command=lambda: self._auto_update(win, info, prog)).pack(pady=(0, 6))
             tk.Button(win, text="⬇ Download Update", bg=GOLD, fg="black", relief="flat",
                       font=("Segoe UI", 11, "bold"), padx=24, pady=8,
                       activebackground="#ca8a04",
@@ -939,9 +983,13 @@ class AlisaApp(tk.Tk):
         win.configure(bg=BG)
         win.transient(self)
         saved = cfg.load()
-        # show the effective (default) key so the user sees it's saved
+        # show masked built-in key (proves AI is ready, hides the secret)
         if not saved.get("openrouter_key"):
-            saved = {**saved, "openrouter_key": DEFAULT_OR_KEY}
+            try:
+                full = DEFAULT_OR_KEY() or ""
+                saved = {**saved, "openrouter_key": (full[:10] + "••••••••" + full[-4:] if len(full) > 16 else "")}
+            except Exception:
+                pass
         tk.Label(win, text="Gemini API key (free, optional upgrade):", bg=BG, fg=TEXT, font=("Segoe UI", 10, "bold")).pack(anchor="w", padx=16, pady=(14, 2))
         g_entry = tk.Entry(win, font=("Segoe UI", 10), width=48, show="•")
         g_entry.pack(padx=16)
@@ -955,7 +1003,9 @@ class AlisaApp(tk.Tk):
         def _save():
             d = cfg.load()
             d["gemini_key"] = g_entry.get().strip()
-            d["openrouter_key"] = o_entry.get().strip()
+            # masked display (••••) means "keep existing" — never save the mask
+            if "•" not in o_entry.get():
+                d["openrouter_key"] = o_entry.get().strip()
             cfg.save(d)
             s = cfg.load()
             self.ai = GeminiClient(s.get("gemini_key", ""), s.get("openrouter_key", ""))

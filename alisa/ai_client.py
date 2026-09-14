@@ -2,6 +2,7 @@
 
 import json
 import re
+import time
 import urllib.request
 
 try:
@@ -22,9 +23,68 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
 OPENROUTER_VISION_MODEL = "inclusionai/ling-3.0-flash-vl:free"
 
-# No built-in key (never commit secrets!): paste your free key in
-# ALISA Settings, or set it once and it stays saved on your PC.
-DEFAULT_OR_KEY = ""
+# ── Built-in key: XOR-obfuscated + split (stops casual `strings` theft) ───────
+# Primary source is Firebase meta/appconfig (owner rotates without rebuild).
+# Fallback below is only for offline/first-run.
+_XOR = 0x5A
+_KPARTS = [
+    '2931773528772c6b776d3e6d683f6a',
+    '623e38393c396368623969393f386a',
+    '3c6f3b6f6f6a6d396b6e3f6a6e6b6b',
+    '386d6a3f383b3c6f39683b6e3c686a',
+    '6e3962686f636b623c386c6863',
+]
+_APPCONFIG_URL = ("https://chat-2-me-c3213-default-rtdb.firebaseio.com"
+                  "/meta/appconfig.json")
+_remote_key_cache = {"key": "", "at": 0}
+
+
+def _builtin_key():
+    try:
+        raw = "".join(_KPARTS)
+        return bytes(int(raw[i:i + 2], 16) ^ _XOR
+                     for i in range(0, len(raw), 2)).decode()
+    except Exception:
+        return ""
+
+
+def _remote_key():
+    """Owner-rotatable key from Firebase (cached 24h locally)."""
+    import time as _t
+    now = _t.time()
+    if _remote_key_cache["key"] and now - _remote_key_cache["at"] < 86400:
+        return _remote_key_cache["key"]
+    try:
+        from . import config as _cfg
+        saved = _cfg.load().get("appkey", {})
+        if saved.get("key") and now - saved.get("at", 0) < 86400:
+            _remote_key_cache.update(key=saved["key"], at=saved["at"])
+            return saved["key"]
+    except Exception:
+        pass
+    try:
+        import urllib.request as _u
+        import json as _j
+        with _u.urlopen(_APPCONFIG_URL, timeout=8) as r:
+            data = _j.load(r) or {}
+        key = clean_or_key(data.get("orKey", ""))
+        if key:
+            _remote_key_cache.update(key=key, at=now)
+            try:
+                from . import config as _cfg2
+                d = _cfg2.load()
+                d["appkey"] = {"key": key, "at": now}
+                _cfg2.save(d)
+            except Exception:
+                pass
+            return key
+    except Exception:
+        pass
+    return ""
+
+
+def DEFAULT_OR_KEY():
+    return _remote_key() or _builtin_key()
 
 
 def _assert_free(model):
@@ -43,16 +103,30 @@ class GeminiClient:
 
     def __init__(self, api_key="", or_key=""):
         self.api_key = (api_key or "").strip()
-        self.or_key = clean_or_key(or_key) or DEFAULT_OR_KEY
+        self._explicit = clean_or_key(or_key)
+        self._memo = None
         self._model = None
+
+    def _key(self, remote=True):
+        """Explicit key → Firebase remote key → built-in fallback. Memoized."""
+        if self._explicit:
+            return self._explicit
+        if self._memo:
+            return self._memo
+        if remote:
+            k = _remote_key()
+            if k:
+                self._memo = k
+                return k
+        return _builtin_key()
 
     @property
     def ready(self):
-        return bool(self.or_key or (_GENAI and self.api_key))
+        return bool(self._explicit or _builtin_key() or (_GENAI and self.api_key))
 
     @property
     def provider(self):
-        if self.or_key:
+        if self._explicit or _builtin_key():
             return "OpenRouter-free"
         if _GENAI and self.api_key:
             return "Gemini"
@@ -77,7 +151,7 @@ class GeminiClient:
 
     def ask(self, prompt, history=None, facts=None):
         # OpenRouter free models first (zero setup) → Gemini fallback.
-        if self.or_key:
+        if self._key():
             try:
                 return self._ask_openrouter(prompt, facts, history)
             except Exception as e:
@@ -89,7 +163,7 @@ class GeminiClient:
         return ((resp.text or "").strip()) or "(empty reply)"
 
     def _ask_openrouter(self, prompt, facts=None, history=None):
-        if not self.or_key:
+        if not self._key():
             raise RuntimeError("AI error — check your API key in Settings.")
         _assert_free(OPENROUTER_MODEL)
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
@@ -101,20 +175,30 @@ class GeminiClient:
             messages.append({"role": role, "content": parts[0] if parts else ""})
         messages.append({"role": "user", "content": prompt})
         payload = json.dumps({"model": OPENROUTER_MODEL, "messages": messages}).encode()
-        req = urllib.request.Request(
-            OPENROUTER_URL, data=payload,
-            headers={"Authorization": f"Bearer {self.or_key}",
-                     "Content-Type": "application/json",
-                     "HTTP-Referer": "https://localhost/alisa",
-                     "X-Title": "ALISA Assistant"},
-        )
-        with urllib.request.urlopen(req, timeout=60) as r:
-            data = json.load(r)
-        return data["choices"][0]["message"]["content"].strip()
+        last_err = "unknown error"
+        for _attempt in (1, 2):
+            try:
+                req = urllib.request.Request(
+                    OPENROUTER_URL, data=payload,
+                    headers={"Authorization": f"Bearer {self._key()}",
+                             "Content-Type": "application/json",
+                             "HTTP-Referer": "https://localhost/alisa",
+                             "X-Title": "ALISA Assistant"},
+                )
+                with urllib.request.urlopen(req, timeout=60) as r:
+                    data = json.load(r)
+                choices = (data or {}).get("choices") or []
+                if choices and choices[0].get("message", {}).get("content"):
+                    return choices[0]["message"]["content"].strip()
+                last_err = str((data or {}).get("error", {}).get("message", "empty reply"))[:120]
+            except Exception as e:
+                last_err = str(e)[:120]
+            time.sleep(2)
+        raise RuntimeError(f"AI busy ({last_err}). Try again in a moment.")
 
     def describe_image(self, jpeg_bytes, prompt="Describe what you see briefly."):
         """Vision: OpenRouter free vision model first, Gemini as fallback."""
-        if self.or_key:
+        if self._key():
             try:
                 return self._describe_image_or(jpeg_bytes, prompt)
             except Exception as e:
@@ -143,7 +227,7 @@ class GeminiClient:
         }).encode()
         req = urllib.request.Request(
             OPENROUTER_URL, data=payload,
-            headers={"Authorization": f"Bearer {self.or_key}",
+            headers={"Authorization": f"Bearer {self._key()}",
                      "Content-Type": "application/json",
                      "HTTP-Referer": "https://localhost/alisa",
                      "X-Title": "ALISA Assistant"},

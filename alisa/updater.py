@@ -66,3 +66,59 @@ def check_announcement():
                 "body": str(data.get("body", ""))}
     except Exception:
         return None
+
+
+def is_exe_update(url):
+    return str(url or "").lower().split("?")[0].endswith(".exe")
+
+
+def download_update(url, dest_path, progress_cb=None):
+    """Download with progress. progress_cb(downloaded, total)."""
+    import os as _os
+    req = urllib.request.Request(url, headers={"User-Agent": "ALISA-Updater"})
+    with urllib.request.urlopen(req, timeout=120) as r:
+        total = int(r.headers.get("Content-Length") or 0)
+        got = 0
+        with open(dest_path, "wb") as f:
+            while True:
+                chunk = r.read(1024 * 256)
+                if not chunk:
+                    break
+                f.write(chunk)
+                got += len(chunk)
+                if progress_cb:
+                    try:
+                        progress_cb(got, total)
+                    except Exception:
+                        pass
+    if total and _os.path.getsize(dest_path) != total:
+        raise RuntimeError("Download incomplete — try again.")
+    return dest_path
+
+
+def apply_update(new_exe_path):
+    """Swap running exe with the downloaded one and restart (frozen only).
+
+    Returns True if the updater was launched (caller must exit immediately).
+    """
+    import os as _os
+    import subprocess as _sp
+    import sys as _sys
+    if not getattr(_sys, "frozen", False):
+        return False
+    current = _sys.executable
+    bat = os.path.join(_os.path.expandvars("%TEMP%"), "alisa-update.bat")
+    with open(bat, "w", encoding="utf-8") as f:
+        f.write(
+            "@echo off\n"
+            "timeout /t 4 /nobreak >nul\n"
+            f'move /y "{current}" "{current}.bak" >nul\n'
+            f'move /y "{new_exe_path}" "{current}" >nul\n'
+            f'if not exist "{current}" ( move /y "{current}.bak" "{current}" >nul )\n'
+            f'if exist "{current}" ( del "{current}.bak" >nul 2>&1 )\n'
+            f'start "" "{current}"\n'
+            "del \"%~f0\"\n"
+        )
+    _sp.Popen(["cmd", "/c", bat], creationflags=0x00000008,
+              stdout=_sp.DEVNULL, stderr=_sp.DEVNULL)
+    return True
