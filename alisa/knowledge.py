@@ -12,8 +12,16 @@ KB_URL = "https://chat-2-me-c3213-default-rtdb.firebaseio.com/kb.json"
 _cache = {"at": 0, "entries": []}
 
 
+def _normalize(s):
+    s = str(s or "")
+    # unify commonly mixed-up Bengali letters + strip invisible chars
+    s = s.replace("য়", "য").replace("\u200c", "").replace("\u200d", "")
+    return s
+
+
 def _words(s):
-    return [w for w in re.sub(r"[^\w\s\u0980-\u09FF]", " ", str(s or "").lower()).split()
+    s = _normalize(s).lower()
+    return [w for w in re.sub(r"[^\w\s\u0980-\u09FF]", " ", s).split()
             if len(w) > 1 or w.isdigit()]
 
 
@@ -21,7 +29,16 @@ def _score(pattern, text):
     pw, tw = set(_words(pattern)), set(_words(text))
     if not pw:
         return 0.0
-    return len(pw & tw) / len(pw)
+    hit = pw & tw
+    if not hit:
+        return 0.0
+    cov = len(hit) / len(pw)
+    if cov >= 0.6:
+        return cov
+    # one strong word (e.g. a name like Jewel) is enough to match
+    if max(len(w) for w in hit) >= 4:
+        return 0.65
+    return cov
 
 
 def find_answer(text, entries):
