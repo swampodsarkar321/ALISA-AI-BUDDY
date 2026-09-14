@@ -20,7 +20,14 @@ SYSTEM_PROMPT = (
 )
 
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
-OPENROUTER_MODEL = "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free"
+# Best free models in priority order — auto-switches on failure/rate-limit.
+OPENROUTER_MODELS = [
+    "google/gemma-4-31b-it:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "liquid/lfm-2.5-2.6b:free",
+]
+OPENROUTER_MODEL = OPENROUTER_MODELS[1]  # default display name
 OPENROUTER_VISION_MODEL = "inclusionai/ling-3.0-flash-vl:free"
 
 # ── Built-in key: XOR-obfuscated + split (stops casual `strings` theft) ───────
@@ -165,7 +172,6 @@ class GeminiClient:
     def _ask_openrouter(self, prompt, facts=None, history=None):
         if not self._key():
             raise RuntimeError("AI error — check your API key in Settings.")
-        _assert_free(OPENROUTER_MODEL)
         messages = [{"role": "system", "content": SYSTEM_PROMPT}]
         if facts:
             messages.append({"role": "system", "content": "Remembered facts: " + "; ".join(facts)})
@@ -174,9 +180,10 @@ class GeminiClient:
             parts = m.get("parts", [""])
             messages.append({"role": role, "content": parts[0] if parts else ""})
         messages.append({"role": "user", "content": prompt})
-        payload = json.dumps({"model": OPENROUTER_MODEL, "messages": messages}).encode()
         last_err = "unknown error"
-        for _attempt in (1, 2):
+        for model in OPENROUTER_MODELS:
+            _assert_free(model)
+            payload = json.dumps({"model": model, "messages": messages}).encode()
             try:
                 req = urllib.request.Request(
                     OPENROUTER_URL, data=payload,
@@ -185,7 +192,7 @@ class GeminiClient:
                              "HTTP-Referer": "https://localhost/alisa",
                              "X-Title": "ALISA Assistant"},
                 )
-                with urllib.request.urlopen(req, timeout=60) as r:
+                with urllib.request.urlopen(req, timeout=45) as r:
                     data = json.load(r)
                 choices = (data or {}).get("choices") or []
                 if choices and choices[0].get("message", {}).get("content"):
@@ -193,7 +200,7 @@ class GeminiClient:
                 last_err = str((data or {}).get("error", {}).get("message", "empty reply"))[:120]
             except Exception as e:
                 last_err = str(e)[:120]
-            time.sleep(2)
+            time.sleep(1)
         raise RuntimeError(f"AI busy ({last_err}). Try again in a moment.")
 
     def describe_image(self, jpeg_bytes, prompt="Describe what you see briefly."):
